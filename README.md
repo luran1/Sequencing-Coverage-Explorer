@@ -24,13 +24,13 @@ The Sequencing Coverage Explorer is a Shiny app designed for in-depth analysis a
 
 # How to Use:
 
-    Upload Positions File:
+1. Upload Positions File:
         Easily upload your positions file containing genomic coordinates and corresponding coverage data.
         Example file is provided to match format.
 
-    Explore and Analyze:
+2. Explore and Analyze:
         Utilize the interactive tools to explore coverage patterns across genomic positions.
         Identify outliers, trends, and potential areas for further investigation.
 
-    Download Results:
+3. Download Results:
         Download detailed reports and visualizations for use in publications or further data analysis.
