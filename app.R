@@ -42,11 +42,15 @@ ui <- fluidPage(
         
         # Show a plot of the generated distribution and the Coverage table.
         mainPanel(
-           #Histogram plot
-           plotOutput("distPlot"),
-           #Coverage table
-           tableOutput("content")
-           )
+          tabsetPanel(
+            type = "tabs",
+            #Histogram plot
+            tabPanel("plot",plotOutput("distPlot")),
+            #Max Coverage table
+            tabPanel("Data", dataTableOutput("content"))
+          )
+           
+        )
         
     )
 )
@@ -54,7 +58,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   # Generate the Coverage table from positions file.     
-    output$content <- renderTable({
+    output$content <- renderDataTable({
       
       #input$upload will be NULL initially.
       req(input$upload)
