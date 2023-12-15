@@ -47,7 +47,8 @@ ui <- fluidPage(
             #Histogram plot
             tabPanel("Plot",plotOutput("distPlot")),
             #Max Coverage table
-            tabPanel("Data", dataTableOutput("content"))
+            tabPanel("Data", dataTableOutput("content")),
+            tabPanel("Summary",dataTableOutput("summary"))
           )
            
         )
@@ -99,6 +100,28 @@ server <- function(input, output) {
            xlab = 'Coverage (reads)',
            main = 'Histogram of Coverage Maximums of Amplicons of Interest')
     })
+
+  # Generate the Sequence Summary Table : Average Coverage,Average Q-score, STD for each, total amplicons in Lib
+    output$summary <- renderDataTable({
+      #input$upload will be NULL initially.
+      req(input$upload) 
+      summary_stats <- read_tsv(input$upload$datapath)%>%
+        group_by(`Ref Name`)%>%
+        mutate(Coverage_MAX = max(Coverage))%>%
+        mutate(Coverage_AVG = mean(Coverage))%>%
+        mutate("Q-Score_AVG" = mean(`Avg. Quality`))%>%
+        mutate(Coverage_STD = sd(Coverage))%>%
+        mutate("Q-Score_STD" = sd(`Avg. Quality`))%>%
+        select(`Ref Name`,
+               Coverage_MAX,
+               Coverage_AVG,
+               Coverage_STD,
+               `Q-Score_AVG`,
+               `Q-Score_STD`)%>%
+        distinct()%>%
+        mutate_if(is.numeric,round,digits = 2)
+    })    
+    
 }
 
 # Run the application 
