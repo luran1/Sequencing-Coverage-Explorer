@@ -45,7 +45,8 @@ ui <- fluidPage(
           tabsetPanel(
             type = "tabs",
             #Histogram plot
-            tabPanel("Plot",plotOutput("distPlot")),
+            tabPanel("Plots",plotOutput("distPlot"),
+                     plotOutput("boxplot")),
             #Max Coverage table
             tabPanel("Data", dataTableOutput("content")),
             tabPanel("Summary",dataTableOutput("summary"))
@@ -121,6 +122,32 @@ server <- function(input, output) {
         distinct()%>%
         mutate_if(is.numeric,round,digits = 2)
     })    
+
+  # Generate the distribution graph (box and whisker plot)
+    output$boxplot <- renderPlot({
+      #input$upload will be NULL initially.
+      req(input$upload)  
+      
+      #transform the raw data to display only the Reference Name and the Coverage maximum.
+      positions1 <- read_tsv(input$upload$datapath)%>%
+        select("Ref Name", Coverage)%>%
+        group_by(`Ref Name`)%>%
+        mutate(Coverage_Max = max(Coverage))%>%
+        slice_max(order_by = Coverage, n=1)%>%
+        ungroup()%>%
+        select(`Ref Name`, Coverage_Max)%>%
+        distinct()%>%
+        mutate("library"="library")%>%
+        select(Coverage_Max,`library`)
+      
+      # draw box and whisker plot 
+      p1 <- ggplot(positions1, aes(x=`library`, y=Coverage_Max)) +
+        geom_boxplot() +
+        stat_summary(fun.y = mean, geom="point", shape=10, size=2) +
+        ggtitle("Distribution of Amplicon Coverage for Library")
+      p1
+      
+    })
     
 }
 
