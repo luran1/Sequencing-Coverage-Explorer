@@ -45,7 +45,7 @@ ui <- fluidPage(
           tabsetPanel(
             type = "tabs",
             #Histogram plot
-            tabPanel("plot",plotOutput("distPlot")),
+            tabPanel("Plot",plotOutput("distPlot")),
             #Max Coverage table
             tabPanel("Data", dataTableOutput("content"))
           )
