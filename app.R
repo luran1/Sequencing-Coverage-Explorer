@@ -16,7 +16,7 @@ library(DT)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Max Coverage Distribution"),
+    titlePanel("Sequence Coverage Explorer"),
     
     
     # Sidebar with a file input button and slider input for number of bins. 
@@ -31,13 +31,21 @@ ui <- fluidPage(
                     accept = ".tsv"),
             
             #slider input for number of bins.
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            conditionalPanel(condition = "input.conditionedPanels == 'Plots'",
+                             sliderInput("bins",
+                                         "Number of bins:",
+                                         min = 1,
+                                         max = 50,
+                                         value = 30)),
 
-        ),
+            #Select Amplicon Sequence to review.
+            conditionalPanel(condition = "input.conditionedPanels == 'Amplicon Viewer'",
+                             uiOutput('Amplicon'),
+                             sliderInput("Percent", 
+                                         "minimum Base Accuracy",
+                                         min = 0.1, value = 0.9, max = 1))
+        ),    
+
         
         
         # Show a plot of the generated distribution and the Coverage table.
@@ -48,35 +56,54 @@ ui <- fluidPage(
             tabPanel("Plots",plotOutput("distPlot"),
                      plotOutput("boxplot")),
             #Max Coverage table
-            tabPanel("Data", dataTableOutput("content")),
-            tabPanel("Summary",dataTableOutput("summary"))
+            tabPanel("Amplicon Viewer", dataTableOutput("content")),
+            tabPanel("Summary",dataTableOutput("summary")),
+            id = "conditionedPanels"
           )
-           
         )
-        
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-  # Generate the Coverage table from positions file.     
-    output$content <- renderDataTable({
-      
+
+# Reactive select menu for Amplicon Viewer
+    output$Amplicon = renderUI({
       #input$upload will be NULL initially.
       req(input$upload)
-       
-      #transform the raw data to display only the Reference Name and the Coverage maximum.
+      
+      summary_stats <- read_tsv(input$upload$datapath)%>%
+        select(`Ref Name`)
+      
+      selectInput('Amplicon_Name', 'Amplicon', summary_stats[,1])
+    })
+    
+# Generate the selected Amplicon by base position with Accuracy.     
+    output$content <- renderDataTable({
+      
+      #input$upload and input$Amplicon_Name will be NULL initially. 
+      req(input$upload)
+      req(input$Amplicon_Name)
+      
+      
+      #Display only information from selected Amplicon.
       positions1 <- read_tsv(input$upload$datapath)%>%
-        select("Ref Name", Coverage)%>%
-        group_by(`Ref Name`)%>%
-        mutate(Coverage_Max = max(Coverage))%>%
-        slice_max(order_by = Coverage, n=1)%>%
-        ungroup()%>%
-        select(`Ref Name`, Coverage_Max)%>%
-        distinct()
+        filter(`Ref Name` == input$Amplicon_Name)%>%
+        select(!c(`Ref Name`,"Base 1", "Base 2", "Base 3", "Base 4", "Base 2 %", "Base 3 %", "Base 4 %") )%>%
+        rename("Base Accuracy (%)" = "Base 1 %")%>%
+        relocate("Base Accuracy (%)", .after = "Base")%>%
+        relocate("Position", .before = "Base")%>%
+        filter("Base Accuracy (%)" > input$Percent)%>%
+        column_to_rownames(var = "Position")
+      
+      # Change Base Accuracy to % value
+          
+      #transpose the table to show each base as a column value.
+      positions1 <- as.data.frame(t(positions1))
+      
     })
   
-  # Generate the distribution graph (histogram)    
+# Generate the distribution graph (histogram)    
     output$distPlot <- renderPlot({
       
       #input$upload will be NULL initially.
@@ -102,7 +129,7 @@ server <- function(input, output) {
            main = 'Histogram of Coverage Maximums of Amplicons of Interest')
     })
 
-  # Generate the Sequence Summary Table : Average Coverage,Average Q-score, STD for each, total amplicons in Lib
+# Generate the Sequence Summary Table : Average Coverage,Average Q-score, STD for each, total amplicons in Lib
     output$summary <- renderDataTable({
       #input$upload will be NULL initially.
       req(input$upload) 
@@ -123,7 +150,7 @@ server <- function(input, output) {
         mutate_if(is.numeric,round,digits = 2)
     })    
 
-  # Generate the distribution graph (box and whisker plot)
+# Generate the distribution graph (box and whisker plot)
     output$boxplot <- renderPlot({
       #input$upload will be NULL initially.
       req(input$upload)  
