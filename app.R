@@ -43,7 +43,7 @@ ui <- fluidPage(
                              uiOutput('Amplicon'),
                              sliderInput("Percent", 
                                          "minimum Base Accuracy",
-                                         min = 0.1, value = 0.9, max = 1))
+                                         min = 10, value = 90, max = 100))
         ),    
 
         
@@ -96,10 +96,12 @@ server <- function(input, output) {
         filter("Base Accuracy (%)" > input$Percent)%>%
         column_to_rownames(var = "Position")
       
-      # Change Base Accuracy to % value
-          
-      #transpose the table to show each base as a column value.
-      positions1 <- as.data.frame(t(positions1))
+      # Highlight Base Accuracy below minimum.
+      datatable(positions1)%>%
+        formatStyle('Base Accuracy (%)',
+                    backgroundColor = styleInterval(input$Percent, c('red','white')))
+      #transpose the table to show each base as a column value. Due to Formatting issue with rows, table is not transposed
+      #positions1 <- as.data.frame(t(positions1))
       
     })
   
